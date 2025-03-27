@@ -14,7 +14,7 @@ export default function LoginPage() {
                         <Link href="/" aria-label="go home">
                             Task pulse
                         </Link>
-                        <h1 className="mb-1 mt-4 text-xl font-semibold">Sign In to Tailus UI</h1>
+                        <h1 className="mb-1 mt-4 text-xl font-semibold">Sign In to TaskPulse</h1>
                         <p className="text-sm">Welcome back! Sign in to continue</p>
                     </div>
 

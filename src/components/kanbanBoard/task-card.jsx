@@ -59,8 +59,8 @@ export function TaskCard({
         switch (task.priority) {
             case "High":
                 return {
-                    bgColor: "border-grey-400 bg-[rgba(254,202,202,0.2)] dark:bg-[rgba(255,44,44,0.25)] dark:border-zinc-600",
-                    textColor: "text-red-700 dark:text-red-400",
+                    bgColor: "border-grey-400 bg-[#f0ebed] dark:bg-[#4b2338] dark:border-zinc-600",
+                    textColor: "text-red-800 dark:text-red-600",
                     icon: <AlertTriangle className="h-4 w-4 mr-1 text-red-600" />
                 };
             case "Medium":

@@ -32,8 +32,8 @@ export default function HeroSection() {
                         <div className="relative mt-16">
                             <div aria-hidden className="bg-linear-to-b to-background absolute inset-0 z-10 from-transparent from-35%" />
                             <div className="relative mx-auto max-w-6xl overflow-hidden px-4">
-                                <Image className="z-2 border-border/25 relative hidden rounded-2xl border dark:block" src="/ss.png" alt="app screen" width={2796} height={2008} />
-                                <Image className="z-2 border-border/25 relative rounded-2xl border dark:hidden" src="/ss.png" alt="app screen" width={2796} height={2008} />
+                                <Image src="/light-calendar.png" alt="app screen" className="z-2 border-border/25 relative rounded-2xl border dark:hidden" width={2796} height={2008} />
+                                <Image src="/dark-calendar.png" alt="app screen" className="z-2 border-border/25 relative rounded-2xl border hidden dark:block" width={2796} height={2008} />
                             </div>
                         </div>
                     </div>
