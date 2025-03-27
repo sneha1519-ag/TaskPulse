@@ -16,17 +16,17 @@ import { Bookmark, Plus, CheckIcon } from "lucide-react"
 import { useSession } from "next-auth/react";
 
 const colorMapping = {
-    "#7986CB": "border-indigo-500 bg-indigo-100 dark:bg-indigo-900/30",
-    "#33B679": "border-green-500 bg-green-100 dark:bg-green-900/30",
-    "#8E24AA": "border-purple-500 bg-purple-100 dark:bg-purple-900/30",
-    "#E67C73": "border-red-500 bg-red-100 dark:bg-red-900/30",
-    "#F6BF26": "border-yellow-500 bg-yellow-100 dark:bg-yellow-900/30",
-    "#F4511E": "border-orange-500 bg-orange-100 dark:bg-orange-900/30",
-    "#039BE5": "border-blue-500 bg-blue-100 dark:bg-blue-900/30",
-    "#616161": "border-gray-500 bg-gray-100 dark:bg-gray-900/30",
-    "#3F51B5": "border-indigo-700 bg-indigo-200 dark:bg-indigo-800/30",
-    "#0B8043": "border-green-700 bg-green-200 dark:bg-green-800/30",
-    "#D50000": "border-red-700 bg-red-200 dark:bg-red-800/30"
+    "#7986CB": "border-indigo-500 bg-indigo-100 dark:bg-indigo-900",
+    "#33B679": "border-green-500 bg-green-100 dark:bg-green-900",
+    "#8E24AA": "border-purple-500 bg-purple-100 dark:bg-purple-900",
+    "#E67C73": "border-red-500 bg-red-100 dark:bg-red-900",
+    "#F6BF26": "border-yellow-500 bg-yellow-100 dark:bg-yellow-900",
+    "#F4511E": "border-orange-500 bg-orange-100 dark:bg-orange-900",
+    "#039BE5": "border-blue-500 bg-blue-100 dark:bg-blue-900",
+    "#616161": "border-gray-500 bg-gray-100 dark:bg-gray-900",
+    "#3F51B5": "border-indigo-700 bg-indigo-200 dark:bg-indigo-800",
+    "#0B8043": "border-green-700 bg-green-200 dark:bg-green-800",
+    "#D50000": "border-red-700 bg-red-200 dark:bg-red-800"
 };
 
 const colorOptions = [
