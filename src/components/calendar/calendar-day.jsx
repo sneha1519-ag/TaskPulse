@@ -28,6 +28,8 @@ const CalendarDay = ({
                          setSelectedDate
                      }) => {
     const date = new Date(year, month, day);
+    const [selectedEvent, setSelectedEvent] = React.useState(null);
+    const [isEventDialogOpen, setIsEventDialogOpen] = React.useState(false);
 
     // Filter events for this day
     const dayEvents = events.filter(event => {
@@ -43,7 +45,11 @@ const CalendarDay = ({
         return false;
     });
 
-    const [show, setShow] = React.useState(false);
+    const handleEventClick = (event) => {
+        setSelectedEvent(event);
+        setIsEventDialogOpen(true);
+    };
+
 
     const dayContent = (
         <div
@@ -74,9 +80,12 @@ const CalendarDay = ({
                         key={event.id}
                         className={`text-xs p-1 rounded truncate ${event.color || "border-l-2 border-gray-400 bg-gray-100 dark:bg-zinc-800"} hover:shadow-md transition-all duration-200 cursor-pointer hover:scale-105`}
                         title={`${event.title} - ${event.time}`}
-                        onClick={() => setShow(true)}
+                        onClick={(e) => {
+                            e.stopPropagation(); // Prevent parent click
+                            handleEventClick(event);
+                        }}
                     >
-                         {event.title}
+                        {event.title}
                     </div>
                 ))}
             </div>
@@ -99,6 +108,13 @@ const CalendarDay = ({
                     </div>
                 </div>
             )}
+
+            <UpdateDeleteEvent
+                event={selectedEvent}
+                isOpen={isEventDialogOpen}
+                onOpenChange={setIsEventDialogOpen}
+            />
+
         </div>
     );
 

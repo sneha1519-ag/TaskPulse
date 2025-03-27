@@ -133,21 +133,9 @@ export default function CustomCalendar() {
 
 
     useEffect(() => {
-        // Function to handle event creation
         const handleEventCreated = (e) => {
-            // If we have event details in the custom event
             if (e.detail && e.detail.event) {
-                // Add the new event to the current events list for immediate display
                 setEvents(prevEvents => [...prevEvents, e.detail.event]);
-
-                // Also refresh from the server to ensure everything is in sync
-                fetchEventsForMonth(
-                    currentDate.getFullYear(),
-                    currentDate.getMonth(),
-                    true // force refresh
-                );
-            } else {
-                // Just refresh events if no details provided
                 fetchEventsForMonth(
                     currentDate.getFullYear(),
                     currentDate.getMonth(),
@@ -156,12 +144,44 @@ export default function CustomCalendar() {
             }
         };
 
-        // Add event listener
+        const handleEventUpdated = (e) => {
+            if (e.detail && e.detail.event) {
+                setEvents(prevEvents =>
+                    prevEvents.map(event =>
+                        event.id === e.detail.event.id ? e.detail.event : event
+                    )
+                );
+                fetchEventsForMonth(
+                    currentDate.getFullYear(),
+                    currentDate.getMonth(),
+                    true // force refresh
+                );
+            }
+        };
+
+        const handleEventDeleted = (e) => {
+            if (e.detail && e.detail.eventId) {
+                setEvents(prevEvents =>
+                    prevEvents.filter(event => event.id !== e.detail.eventId)
+                );
+                fetchEventsForMonth(
+                    currentDate.getFullYear(),
+                    currentDate.getMonth(),
+                    true // force refresh
+                );
+            }
+        };
+
+        // Add event listeners
         window.addEventListener('calendar-event-created', handleEventCreated);
+        window.addEventListener('calendar-event-updated', handleEventUpdated);
+        window.addEventListener('calendar-event-deleted', handleEventDeleted);
 
         // Clean up
         return () => {
             window.removeEventListener('calendar-event-created', handleEventCreated);
+            window.removeEventListener('calendar-event-updated', handleEventUpdated);
+            window.removeEventListener('calendar-event-deleted', handleEventDeleted);
         };
     }, [currentDate, fetchEventsForMonth]);
 
@@ -199,20 +219,20 @@ export default function CustomCalendar() {
         fetchEvents();
     }, []);
 
-    useEffect(() => {
-        // Function to handle event creation
-        const handleEventCreated = () => {
-            fetchEventsForMonth(currentDate.getFullYear(), currentDate.getMonth());
-        };
-
-        // Add event listener
-        window.addEventListener('calendar-event-created', handleEventCreated);
-
-        // Clean up
-        return () => {
-            window.removeEventListener('calendar-event-created', handleEventCreated);
-        };
-    }, [currentDate, fetchEventsForMonth]);
+    // useEffect(() => {
+    //     // Function to handle event creation
+    //     const handleEventCreated = () => {
+    //         fetchEventsForMonth(currentDate.getFullYear(), currentDate.getMonth());
+    //     };
+    //
+    //     // Add event listener
+    //     window.addEventListener('calendar-event-created', handleEventCreated);
+    //
+    //     // Clean up
+    //     return () => {
+    //         window.removeEventListener('calendar-event-created', handleEventCreated);
+    //     };
+    // }, [currentDate, fetchEventsForMonth]);
 
 
     return (
