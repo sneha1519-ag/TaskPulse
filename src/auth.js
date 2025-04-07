@@ -39,11 +39,18 @@ export const { auth, handlers, signIn, signOut } = NextAuth({
         async jwt({ token, account, user }) {
             // Initial sign in
             if (account && user) {
+                // Fetch the user from database to get the role
+                await dbConnect();
+                const dbUser = await User.findOne({ email: user.email });
+                
                 return {
                     accessToken: account.access_token,
                     refreshToken: account.refresh_token,
                     accessTokenExpires: account.expires_at * 1000,
-                    user,
+                    user: {
+                        ...user,
+                        role: dbUser?.role || 'user'
+                    },
                 };
             }
 
@@ -82,10 +89,11 @@ export const { auth, handlers, signIn, signOut } = NextAuth({
             }
         },
         async session({ session, token }) {
-            // Make tokens available in the client session
+            // Make tokens and user role available in the client session
             session.accessToken = token.accessToken;
             session.refreshToken = token.refreshToken;
             session.expiresAt = token.expiresAt;
+            session.user.role = token.user?.role || 'user';
             return session;
         },
     },
