@@ -1,8 +1,41 @@
 import authConfig from "@/auth.config";
 import NextAuth from "next-auth";
+import {dbConnect} from "@/db/db-connect.js";
+import { User } from "@/db/models/index.js";
 
 export const { auth, handlers, signIn, signOut } = NextAuth({
     callbacks: {
+        async signIn({ user }) {
+            try {
+                await dbConnect();
+
+                // Check if user exists
+                const existingUser = await User.findOne({
+                    email: user.email
+                });
+
+                // Create new user if they don't exist
+                if (!existingUser) {
+                    await User.create({
+                        email: user.email,
+                        firstName: user.name?.split(' ')[0] || '', // Split name into first and last name
+                        lastName: user.name?.split(' ').slice(1).join(' ') || '',
+                        profileImage: user.image || '',
+                        password: Math.random().toString(36).slice(-8),
+                        role: 'admin', // Default role
+                    });
+                } else {
+                    // Update last login time for existing users
+                    existingUser.lastLogin = new Date();
+                    await existingUser.save();
+                }
+
+                return true;
+            } catch (error) {
+                console.error("Authentication error:", error);
+                return false;
+            }
+        },
         async jwt({ token, account, user }) {
             // Initial sign in
             if (account && user) {
