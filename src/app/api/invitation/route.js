@@ -5,6 +5,7 @@ import { auth } from '@/auth';
 import crypto from 'crypto';
 import { Resend } from 'resend';
 import mongoose from 'mongoose';
+import bcrypt from 'bcryptjs';
 
 // Initialize Resend
 const resend = new Resend(process.env.RESEND_API_KEY);
@@ -14,27 +15,35 @@ const generateToken = () => {
   return crypto.randomBytes(32).toString('hex');
 };
 
-// Function to send invitation email
-async function sendInvitationEmail(email, token) {
-  // Generate invitation link
-  const invitationLink = `${process.env.NEXTAUTH_URL}/acceptinvitation?token=${token}`;
+// Function to generate a random password (6-8 digits)
+const generatePassword = () => {
+  // Generate a random number between 100000 and 99999999 (6-8 digits)
+  return Math.floor(100000 + Math.random() * 90000000).toString();
+};
 
+// Function to send invitation email with credentials
+async function sendInvitationEmail(email, password) {
   // Send email using Resend
   const { data, error } = await resend.emails.send({
     from: 'Acme <onboarding@resend.dev>',
-    to: ['sneha221agarwal@gmail.com'],
-    subject: 'Hello world',
+    to: [email],
+    subject: 'You have been invited to join our platform',
     html: `
       <h1>You've been invited!</h1>
-      <p>You have been invited to join our platform. Click the link below to register:</p>
-      <a href="${invitationLink}">Accept Invitation</a>
-      <p>This invitation will expire in 7 days.</p>
+      <p>You have been invited to join our platform. Here are your login credentials:</p>
+      <p><strong>Email:</strong> ${email}</p>
+      <p><strong>Password:</strong> ${password}</p>
+      <p>Please use these credentials to login to our platform.</p>
+      <p>For security reasons, we recommend changing your password after your first login.</p>
     `,
   });
+  
   if (error) {
     console.log("Email Error - ", error);
-  }else{
-    console.log("Email Data - ", data)
+    return { success: false, error };
+  } else {
+    console.log("Email Data - ", data);
+    return { success: true, data };
   }
 }
 
@@ -51,7 +60,6 @@ export async function POST(request) {
     // Parse the request body
     const body = await request.json();
     const { email } = body;
-    // console.log("email - ", email);
 
     // Validate email
     if (!email || !email.match(/^[^\s@]+@[^\s@]+\.[^\s@]+$/)) {
@@ -59,53 +67,61 @@ export async function POST(request) {
     }
 
     // Connect to the database
-    const d = await dbConnect();
-    // console.log("database - ", d);
+    await dbConnect();
 
     // Check if the user already exists
-    const existingUser = await User.findOne({ email });
-    if (existingUser) {
-      return NextResponse.json({ error: 'User with this email already exists' }, { status: 400 });
-    }
+    let existingUser = await User.findOne({ email });
+    let newUser = false;
+    let password = '';
 
-    // Check if an invitation already exists for this email
-    let invitation = await Invitation.findOne({ email, status: 'pending' });
-    // console.log("invitation - ",invitation);
-    
-    if (invitation) {
-      // Generate a new token and update expiration if the invitation exists
-      const token = generateToken();
-      const expiresAt = new Date();
-      expiresAt.setDate(expiresAt.getDate() + 7); // Expire in 7 days
-      
-      invitation.token = token;
-      invitation.expiresAt = expiresAt;
-      invitation.status = 'pending';
-      await invitation.save();
-    } else {
-      // Create a new invitation
-      const token = generateToken();
-      const expiresAt = new Date();
-      expiresAt.setDate(expiresAt.getDate() + 7); // Expire in 7 days
-      
-      invitation = new Invitation({
+    if (!existingUser) {
+      // Generate a random password
+      password = generatePassword();
+      const hashedPassword = await bcrypt.hash(password, 10);
+
+      // Create a new user
+      const firstName = email.split('@')[0];
+      const lastName = 'User';
+
+      existingUser = new User({
         email,
-        invitedBy: new mongoose.Types.ObjectId(session.user.id),
-        token,
-        expiresAt,
-        status: 'pending'
+        firstName,
+        lastName,
+        password: hashedPassword,
+        role: 'user',
+        isActive: true
       });
-      
-      const final = await invitation.save();
-      console.log("Final - ", final)
+
+      await existingUser.save();
+      newUser = true;
     }
 
-    // Send the invitation email
-    await sendInvitationEmail(email, invitation.token);
+    // Create a new invitation token (for tracking purposes)
+    const token = generateToken();
+    const expiresAt = new Date();
+    expiresAt.setDate(expiresAt.getDate() + 7); // Expire in 7 days
+    
+    const invitation = new Invitation({
+      email,
+      invitedBy: new mongoose.Types.ObjectId(session.user.id),
+      token,
+      expiresAt,
+      status: 'pending'
+    });
+    
+    await invitation.save();
+
+    // Send the invitation email with credentials
+    if (newUser) {
+      await sendInvitationEmail(email, password);
+    } else {
+      // For existing users, we could send a different notification
+      // But for now, we'll just return success without sending an email
+    }
 
     return NextResponse.json(
       { 
-        message: 'Invitation sent successfully',
+        message: newUser ? 'User created and invitation sent successfully' : 'User already exists',
         invitation: {
           email: invitation.email,
           status: invitation.status,
@@ -125,7 +141,6 @@ export async function GET(request) {
   try {
     // Authenticate the user
     const session = await auth();
-    // console.log("Session - ", session);
     
     // Check if the user is authenticated and is an admin
     if (!session || session.user.role !== 'admin') {
@@ -133,12 +148,10 @@ export async function GET(request) {
     }
 
     // Connect to the database
-    const d = await dbConnect();
-    // console.log("database - ", d);
+    await dbConnect();
 
     // Get all invitations
     const invitations = await Invitation.find().populate('invitedBy', 'firstName lastName email');
-    // console.log("invitations - ", invitations);
 
     return NextResponse.json({ invitations }, { status: 200 });
   } catch (error) {
