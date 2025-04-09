@@ -17,7 +17,7 @@ const generateToken = () => {
 // Function to send invitation email
 async function sendInvitationEmail(email, token) {
   // Generate invitation link
-  const invitationLink = `${process.env.NEXTAUTH_URL}/register?token=${token}`;
+  const invitationLink = `${process.env.NEXTAUTH_URL}/acceptinvitation?token=${token}`;
 
   // Send email using Resend
   const { data, error } = await resend.emails.send({
