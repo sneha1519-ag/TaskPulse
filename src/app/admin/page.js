@@ -239,7 +239,11 @@ export default function AdminDashboard() {
             </thead>
             <tbody className="bg-white divide-y divide-gray-200">
               {users.map((user) => (
-                <tr key={user._id}>
+                <tr 
+                  key={user._id} 
+                  onClick={() => router.push(`/admin/user/${user._id}`)}
+                  className="cursor-pointer hover:bg-gray-50"
+                >
                   <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
                     {user.firstName} {user.lastName}
                   </td>
