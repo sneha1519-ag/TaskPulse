@@ -32,14 +32,46 @@ const MiniAdminCalendar = ({ userId, events = [] }) => {
   const hasEvents = (day) => {
     const date = new Date(currentDate.getFullYear(), currentDate.getMonth(), day);
     
+    console.log('Checking for events on day:', day, 'Month:', currentDate.getMonth(), 'Year:', currentDate.getFullYear());
+    
     return events.some(event => {
-      // Get event date from startTime
-      const eventDate = new Date(event.startTime);
-      return (
-        eventDate.getDate() === day &&
-        eventDate.getMonth() === currentDate.getMonth() &&
-        eventDate.getFullYear() === currentDate.getFullYear()
-      );
+      // Get event date - check multiple possible formats
+      let eventStartTime = event.startTime || event.start?.dateTime || event.start?.date;
+      
+      // Skip invalid events
+      if (!eventStartTime) {
+        console.log('Event missing start time:', event);
+        return false;
+      }
+      
+      try {
+        const eventDate = new Date(eventStartTime);
+        
+        // Log event date details for debugging
+        console.log(
+          'Event:', event.title || event.summary, 
+          'Start:', eventStartTime,
+          'Parsed Date:', eventDate,
+          'Day:', eventDate.getDate(),
+          'Month:', eventDate.getMonth(), 
+          'Year:', eventDate.getFullYear()
+        );
+        
+        const matches = (
+          eventDate.getDate() === day &&
+          eventDate.getMonth() === currentDate.getMonth() &&
+          eventDate.getFullYear() === currentDate.getFullYear()
+        );
+        
+        if (matches) {
+          console.log('Found match!');
+        }
+        
+        return matches;
+      } catch (e) {
+        console.error('Error parsing date:', e, 'for event:', event);
+        return false;
+      }
     });
   };
   
@@ -96,19 +128,35 @@ const MiniAdminCalendar = ({ userId, events = [] }) => {
   // Get events for the selected date
   const getEventsForSelectedDate = () => {
     return events.filter(event => {
-      const eventDate = new Date(event.startTime);
-      return (
-        eventDate.getDate() === selectedDate.getDate() &&
-        eventDate.getMonth() === selectedDate.getMonth() &&
-        eventDate.getFullYear() === selectedDate.getFullYear()
-      );
+      let eventStartTime = event.startTime || event.start?.dateTime || event.start?.date;
+      
+      if (!eventStartTime) return false;
+      
+      try {
+        const eventDate = new Date(eventStartTime);
+        
+        return (
+          eventDate.getDate() === selectedDate.getDate() &&
+          eventDate.getMonth() === selectedDate.getMonth() &&
+          eventDate.getFullYear() === selectedDate.getFullYear()
+        );
+      } catch (e) {
+        console.error('Error parsing date for selected date:', e);
+        return false;
+      }
     });
   };
   
   // Format time for display
   const formatTime = (timeString) => {
-    const date = new Date(timeString);
-    return date.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+    if (!timeString) return "";
+    
+    try {
+      const date = new Date(timeString);
+      return date.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+    } catch (e) {
+      return "";
+    }
   };
 
   const selectedDateEvents = getEventsForSelectedDate();
@@ -153,9 +201,10 @@ const MiniAdminCalendar = ({ userId, events = [] }) => {
           {selectedDateEvents.length > 0 ? (
             selectedDateEvents.map((event, index) => (
               <div key={index} className="text-sm p-2 mb-1 border-l-2 border-blue-500 bg-blue-50">
-                <p className="font-medium">{event.title}</p>
+                <p className="font-medium">{event.title || event.summary}</p>
                 <p className="text-xs text-gray-500">
-                  {formatTime(event.startTime)} - {formatTime(event.endTime)}
+                  {formatTime(event.startTime || event.start?.dateTime)} - 
+                  {formatTime(event.endTime || event.end?.dateTime)}
                 </p>
                 {event.location && (
                   <p className="text-xs text-gray-500">{event.location}</p>

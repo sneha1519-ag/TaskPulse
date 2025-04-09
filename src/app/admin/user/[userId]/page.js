@@ -23,6 +23,7 @@ import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Label } from "@/components/ui/label";
+import MiniAdminCalendar from "@/components/calendar/mini-admin-calendar";
 
 export default function UserDetail({ params }) {
   const { userId } = params;
@@ -102,7 +103,46 @@ export default function UserDetail({ params }) {
       setTasks(data.tasks);
       setTasksByPriority(data.tasksByPriority);
       setTaskCounts(data.taskCounts);
-      setEvents(data.events);
+      
+      console.log('Raw events from API:', data.events);
+      
+      // Format events for the calendar component
+      const formattedEvents = data.events.map(event => {
+        console.log('Processing event:', event);
+        
+        // Make sure dates are in ISO format
+        let startTime = event.startTime;
+        let endTime = event.endTime;
+        
+        // Try to parse and reformat dates if needed
+        if (startTime && typeof startTime === 'string') {
+          try {
+            startTime = new Date(startTime).toISOString();
+          } catch (e) {
+            console.error('Error formatting startTime:', e);
+          }
+        }
+        
+        if (endTime && typeof endTime === 'string') {
+          try {
+            endTime = new Date(endTime).toISOString();
+          } catch (e) {
+            console.error('Error formatting endTime:', e);
+          }
+        }
+        
+        return {
+          ...event,
+          title: event.title || event.summary || 'Untitled Event',
+          // Ensure startTime and endTime are in proper ISO format for the calendar
+          startTime: startTime,
+          endTime: endTime
+        };
+      });
+      
+      console.log('Formatted events for calendar:', formattedEvents);
+      
+      setEvents(formattedEvents);
     } catch (err) {
       setError(err.message);
       console.error(err);
@@ -163,6 +203,10 @@ export default function UserDetail({ params }) {
         throw new Error('Start and end date/time are required');
       }
       
+      // Create start and end datetime in ISO format
+      const startDateTime = new Date(eventFormData.startDateTime).toISOString();
+      const endDateTime = new Date(eventFormData.endDateTime).toISOString();
+      
       const response = await fetch(`/api/users/${userId}/events`, {
         method: 'POST',
         headers: {
@@ -172,8 +216,8 @@ export default function UserDetail({ params }) {
           title: eventFormData.title,
           description: eventFormData.description,
           location: eventFormData.location,
-          startDateTime: eventFormData.startDateTime, // Send flat fields now
-          endDateTime: eventFormData.endDateTime
+          startDateTime: startDateTime,
+          endDateTime: endDateTime
         })
       });
       
@@ -405,24 +449,7 @@ export default function UserDetail({ params }) {
             </Button>
           </div>
           
-          <div className="space-y-3 max-h-64 overflow-auto">
-            {events && events.length > 0 ? (
-              events.map((event) => (
-                <div key={event._id} className="border-l-4 border-blue-400 pl-3 py-2">
-                  <h3 className="font-medium">{event.title || event.summary}</h3>
-                  <div className="text-sm text-gray-500 flex items-center">
-                    <CalendarIcon className="h-3 w-3 mr-1" />
-                    {formatDateTime(event.start?.dateTime)}
-                  </div>
-                  {event.location && (
-                    <div className="text-sm text-gray-500">{event.location}</div>
-                  )}
-                </div>
-              ))
-            ) : (
-              <div className="text-center text-gray-500 py-4">No events found</div>
-            )}
-          </div>
+          <MiniAdminCalendar userId={userId} events={events} />
         </div>
       </div>
       

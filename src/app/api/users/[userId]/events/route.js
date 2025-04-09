@@ -32,10 +32,24 @@ export async function POST(request, { params }) {
       title: eventData.title,
       description: eventData.description,
       location: eventData.location,
-      startTime: eventData.start?.dateTime || new Date(eventData.startDateTime).toISOString(),
-      endTime: eventData.end?.dateTime || new Date(eventData.endDateTime).toISOString(),
+      startTime: eventData.startDateTime || eventData.start?.dateTime,
+      endTime: eventData.endDateTime || eventData.end?.dateTime,
       userId: userId
     };
+
+    console.log('Creating event with data:', transformedData);
+
+    // Ensure dates are in proper ISO format
+    try {
+      if (transformedData.startTime) {
+        transformedData.startTime = new Date(transformedData.startTime).toISOString();
+      }
+      if (transformedData.endTime) {
+        transformedData.endTime = new Date(transformedData.endTime).toISOString();
+      }
+    } catch (e) {
+      console.error('Error formatting event dates:', e);
+    }
 
     // Create the event with proper handling of createdBy
     const newEvent = new Event({
@@ -43,9 +57,14 @@ export async function POST(request, { params }) {
       createdBy: new mongoose.Types.ObjectId(session.user.id)
     });
 
-    await newEvent.save();
-
-    return NextResponse.json({ event: newEvent }, { status: 201 });
+    try {
+      await newEvent.save();
+      console.log('Event saved successfully:', newEvent);
+      return NextResponse.json({ event: newEvent }, { status: 201 });
+    } catch (error) {
+      console.error('Error saving event:', error);
+      return NextResponse.json({ error: error.message || 'Failed to create event' }, { status: 500 });
+    }
   } catch (error) {
     console.error('Error creating event:', error);
     return NextResponse.json({ error: error.message || 'Internal server error' }, { status: 500 });
