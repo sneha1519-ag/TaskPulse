@@ -1,7 +1,6 @@
 import { NextResponse } from 'next/server';
 import { dbConnect } from '@/db/db-connect';
 import { Invitation, User } from '@/db/models';
-import bcrypt from 'bcryptjs';
 
 // POST - Accept invitation and create user account
 export async function POST(request) {
@@ -121,24 +120,13 @@ export async function POST(request) {
 
     // Generate a random password for the new user
     const password = Math.random().toString(36).slice(-8);
-    let hashedPassword;
-    try {
-      hashedPassword = await bcrypt.hash(password, 10);
-      console.log('Generated password and hashed it');
-    } catch (hashError) {
-      console.error('Error hashing password:', hashError);
-      return NextResponse.json({ 
-        error: 'Error creating user password',
-        details: hashError.message 
-      }, { status: 500 });
-    }
 
     // Create a new user
     const user = new User({
       email: invitation.email,
       firstName: invitation.email.split('@')[0], // Use email prefix as first name
       lastName: 'User', // Default last name since it's required
-      password: hashedPassword,
+      password: password, // Store password in plain text
       role: 'user', // Default role for invited users
       isActive: true
     });

@@ -1,5 +1,4 @@
 import { NextResponse } from 'next/server';
-import bcrypt from 'bcryptjs';
 import { dbConnect } from '@/db/db-connect';
 import { User } from '@/db/models/index.js';
 
@@ -30,8 +29,6 @@ export async function POST(request) {
     
     console.log('Stored password format:', {
       length: user.password.length,
-      startsWithDollar: user.password.startsWith('$'),
-      containsBcryptMarker: user.password.includes('$2b$') || user.password.includes('$2a$'),
     });
 
     // For debugging only - show first and last few chars of password (REMOVE IN PRODUCTION)
@@ -44,11 +41,8 @@ export async function POST(request) {
     if (resetPassword === true) {
       console.log('RESETTING PASSWORD FOR:', email);
       
-      // Hash the new password
-      const newHashedPassword = await bcrypt.hash(password, 10);
-      
-      // Update the user's password
-      user.password = newHashedPassword;
+      // Update the user's password - no hashing
+      user.password = password;
       user.lastLogin = new Date();
       await user.save();
       
@@ -87,20 +81,9 @@ export async function POST(request) {
       });
     }
 
-    // Validate password approach 1: direct comparison
+    // Validate password using direct comparison
     if (password === user.password) {
       console.log('Password matched directly');
-      
-      // Hash the password for security
-      try {
-        const hashedPassword = await bcrypt.hash(password, 10);
-        user.password = hashedPassword;
-        await user.save();
-        console.log('Password has been hashed and saved');
-      } catch (hashError) {
-        console.error('Error hashing password:', hashError);
-        // Continue with login even if hashing fails
-      }
       
       // Update last login time
       user.lastLogin = new Date();
@@ -116,45 +99,12 @@ export async function POST(request) {
           role: user.role,
         }
       });
-    }
-    
-    // Validate password approach 2: bcrypt comparison
-    try {
-      const isValidPassword = await bcrypt.compare(password, user.password);
-      console.log('Bcrypt password comparison result:', isValidPassword);
-      
-      if (isValidPassword) {
-        // Update last login time
-        user.lastLogin = new Date();
-        await user.save();
-        
-        return NextResponse.json({
-          message: 'Login successful',
-          user: {
-            id: user._id,
-            email: user.email,
-            firstName: user.firstName,
-            lastName: user.lastName,
-            role: user.role,
-          }
-        });
-      } else {
-        return NextResponse.json(
-          { message: 'Invalid credentials' },
-          { status: 401 }
-        );
-      }
-    } catch (error) {
-      console.error('Error comparing passwords:', error);
-      
-      // If bcrypt comparison fails due to technical issues,
-      // return an appropriate error
+    } else {
       return NextResponse.json(
-        { message: 'Authentication error' },
-        { status: 500 }
+        { message: 'Invalid credentials' },
+        { status: 401 }
       );
     }
-    
   } catch (error) {
     console.error('Login error:', error);
     return NextResponse.json(

@@ -1,6 +1,5 @@
-const mongoose = require('mongoose');
+import mongoose from 'mongoose';
 const Schema = mongoose.Schema;
-const bcrypt = require('bcryptjs');
 
 // User Schema
 const userSchema = new Schema({
@@ -27,6 +26,10 @@ const userSchema = new Schema({
         type: String,
         enum: ['admin', 'user'],
         default: 'user'
+    },
+    points: {
+        type: Number,
+        default: 0
     },
     createdAt: {
         type: Date,
@@ -84,6 +87,10 @@ const taskSchema = new Schema({
     completedAt: {
         type: Date
     },
+    points: {
+        type: Number,
+        default: 0
+    },
     attachments: [{
         type: String
     }],
@@ -107,6 +114,11 @@ const eventSchema = new Schema({
         required: true
     },
     createdBy: {
+        type: Schema.Types.ObjectId,
+        ref: 'User',
+        required: true
+    },
+    userId: {
         type: Schema.Types.ObjectId,
         ref: 'User',
         required: true
@@ -201,19 +213,6 @@ const analyticsSchema = new Schema({
         default: Date.now
     }
 });
-
-// Pre-save hook to hash passwords
-userSchema.pre('save', async function(next) {
-    if (this.isModified('password')) {
-        this.password = await bcrypt.hash(this.password, 10);
-    }
-    next();
-});
-
-// Method to compare passwords
-userSchema.methods.comparePassword = async function(candidatePassword) {
-    return await bcrypt.compare(candidatePassword, this.password);
-};
 
 // Create and export models
 const User = mongoose.model('User', userSchema);

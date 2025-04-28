@@ -1,11 +1,15 @@
+'use client'
 import { ModeToggle } from '@/components/dashboardNavbar/mode-toggle'
 import { SidebarTrigger } from '@/components/ui/sidebar'
 import Image from 'next/image'
 import Link from 'next/link'
+import { useTheme } from "next-themes";
 import { SearchInput } from '@/components/dashboardNavbar/search-input'
 import { Button } from '@/components/ui/button'
 
 const Navbar = () => {
+    const { resolvedTheme } = useTheme();
+
     return (
         <nav className='fixed top-0 left-0 right-0 h-16 flex items-center px-2 pr-5 z-50 border-b bg-background'>
             <div className='flex items-center gap-4 w-full'>
@@ -13,9 +17,15 @@ const Navbar = () => {
                 {/* Logo */}
                 <div className='flex items-center flex-shrink-0'>
                     <SidebarTrigger/>
-                    <Link href={"/"} className='p-4 flex items-center gap-1'>
-                        <Image src="/logo.svg" alt="TaskPulse" width={200} height={50} className="dark:invert"/>
-                    </Link>
+                        <Link href={"/"} className='p-2 flex items-start'>
+                            <Image
+                                src={resolvedTheme === 'dark' ? "/dark-logo.png" : "/light-logo.png"}
+                                alt="TaskPulse"
+                                width={150}
+                                height={0}
+                                className="p-1"
+                            />
+                        </Link>
                 </div>
 
                 {/* Search Bar */}
@@ -27,7 +37,7 @@ const Navbar = () => {
                 <div className='flex-shrink-0 flex items-center gap-4'>
                     <Link href={"https://feebo.vercel.app/b/67b4af49aa64510c3f66c421"} target="_blank">
                         <Button variant={"link"} className='font-semibold text-muted-foreground'>
-                            Feedback?
+                        Feedback?
                         </Button>
                     </Link>
                     <ModeToggle/>

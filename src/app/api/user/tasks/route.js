@@ -201,12 +201,43 @@ export async function PATCH(req) {
       );
     }
     
+    const previousStatus = task.status;
+    
     // Update task status
     task.status = status;
     
-    // If task is completed, set completedAt
+    // If task is completed, set completedAt and award points
     if (status === 'completed' && !task.completedAt) {
       task.completedAt = new Date();
+      
+      // Check if this is a newly completed task (prevent double-awarding points)
+      if (previousStatus !== 'completed') {
+        // Award points based on task priority
+        let pointsToAward = 0;
+        
+        switch(task.priority) {
+          case 'low':
+            pointsToAward = 5;
+            break;
+          case 'medium':
+            pointsToAward = 7;
+            break;
+          case 'high':
+          case 'urgent':
+            pointsToAward = 10;
+            break;
+          default:
+            pointsToAward = 5;
+        }
+        
+        console.log(`Awarding ${pointsToAward} points for completing task with priority ${task.priority}`);
+        
+        // Update user points
+        user.points = (user.points || 0) + pointsToAward;
+        await user.save();
+        
+        console.log(`Updated user points to ${user.points}`);
+      }
     } else if (status !== 'completed') {
       task.completedAt = null;
     }
@@ -217,7 +248,8 @@ export async function PATCH(req) {
     
     return NextResponse.json({
       message: 'Task status updated successfully',
-      task
+      task,
+      userPoints: user.points
     });
     
   } catch (error) {

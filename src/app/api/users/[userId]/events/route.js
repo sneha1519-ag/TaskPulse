@@ -34,7 +34,7 @@ export async function POST(request, { params }) {
       location: eventData.location,
       startTime: eventData.startDateTime || eventData.start?.dateTime,
       endTime: eventData.endDateTime || eventData.end?.dateTime,
-      userId: userId
+      userId: new mongoose.Types.ObjectId(userId)
     };
 
     console.log('Creating event with data:', transformedData);

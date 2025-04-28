@@ -5,7 +5,6 @@ import { auth } from '@/auth';
 import crypto from 'crypto';
 import { Resend } from 'resend';
 import mongoose from 'mongoose';
-import bcrypt from 'bcryptjs';
 
 // Initialize Resend
 const resend = new Resend(process.env.RESEND_API_KEY);
@@ -77,7 +76,7 @@ export async function POST(request) {
     if (!existingUser) {
       // Generate a random password
       password = generatePassword();
-      const hashedPassword = await bcrypt.hash(password, 10);
+      // Store password as plain text (no hashing)
 
       // Create a new user
       const firstName = email.split('@')[0];
@@ -87,7 +86,7 @@ export async function POST(request) {
         email,
         firstName,
         lastName,
-        password: hashedPassword,
+        password: password, // Store password in plain text
         role: 'user',
         isActive: true
       });

@@ -7,6 +7,9 @@ import mongoose from 'mongoose';
 // GET - Get user details by ID with their tasks and events (admin only)
 export async function GET(request, { params }) {
   try {
+    // Await the params to ensure they are available
+    const { userId } = await params;
+
     // Authenticate the user
     const session = await auth();
     
@@ -14,8 +17,6 @@ export async function GET(request, { params }) {
     if (!session || session.user.role !== 'admin') {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
-
-    const { userId } = params;
 
     // Connect to the database
     await dbConnect();
@@ -47,8 +48,9 @@ export async function GET(request, { params }) {
       cancelled: tasks.filter(task => task.status === 'cancelled').length,
     };
 
-    // Get events for the user
-    const events = await Event.find({ userId: userId });
+    // Get events for the user - Convert userId to ObjectId for proper MongoDB querying
+    const events = await Event.find({ userId: new mongoose.Types.ObjectId(userId) });
+    console.log(`Found ${events.length} events for user ${userId}`);
 
     return NextResponse.json({ 
       user, 
@@ -74,7 +76,8 @@ export async function POST(request, { params }) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
 
-    const { userId } = params;
+    // Await the params to ensure they are available
+    const { userId } = await params;
     const taskData = await request.json();
 
     // Connect to the database
@@ -90,7 +93,10 @@ export async function POST(request, { params }) {
     const newTask = new Task({
       ...taskData,
       assignedTo: userId,
-      assignedBy: new mongoose.Types.ObjectId(session.user.id) // Handle both formats
+      assignedBy: new mongoose.Types.ObjectId(session.user.id), // Handle both formats
+      points: taskData.priority === 'low' ? 5 : 
+              taskData.priority === 'medium' ? 7 : 
+              (taskData.priority === 'high' || taskData.priority === 'urgent') ? 10 : 5
     });
 
     await newTask.save();
