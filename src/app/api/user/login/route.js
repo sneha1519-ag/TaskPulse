@@ -1,115 +1,59 @@
 import { NextResponse } from 'next/server';
 import { dbConnect } from '@/db/db-connect';
-import { User } from '@/db/models/index.js';
+import { User } from '@/db/models';
+import bcrypt from 'bcryptjs';
 
-export async function POST(request) {
-  try {
-    const body = await request.json();
-    const { email, password, resetPassword } = body;
-    console.log('Login attempt with:', email);
+export async function POST(req) {
+    try {
+        await dbConnect();
 
-    if (!email || !password) {
-      return NextResponse.json(
-        { message: 'Email and password are required' },
-        { status: 400 }
-      );
-    }
+        const { email, password } = await req.json();
 
-    // Connect to the database
-    await dbConnect();
-
-    // Find the user by email
-    const user = await User.findOne({ email });
-    if (!user) {
-      return NextResponse.json(
-        { message: 'Invalid credentials' },
-        { status: 401 }
-      );
-    }
-    
-    console.log('Stored password format:', {
-      length: user.password.length,
-    });
-
-    // For debugging only - show first and last few chars of password (REMOVE IN PRODUCTION)
-    const maskedStoredPw = user.password.length > 8 
-      ? `${user.password.substring(0, 4)}...${user.password.substring(user.password.length - 4)}`
-      : '********';
-    console.log('Masked stored password:', maskedStoredPw);
-
-    // SPECIAL MODE: Reset password when resetPassword flag is true (REMOVE IN PRODUCTION)
-    if (resetPassword === true) {
-      console.log('RESETTING PASSWORD FOR:', email);
-      
-      // Update the user's password - no hashing
-      user.password = password;
-      user.lastLogin = new Date();
-      await user.save();
-      
-      console.log('Password has been reset and user logged in');
-      
-      return NextResponse.json({
-        message: 'Password reset successful',
-        user: {
-          id: user._id,
-          email: user.email,
-          firstName: user.firstName,
-          lastName: user.lastName,
-          role: user.role,
+        // Find user by email
+        const user = await User.findOne({ email });
+        if (!user) {
+            return NextResponse.json(
+                { error: 'Invalid credentials' },
+                { status: 401 }
+            );
         }
-      });
-    }
 
-    // FORCE LOGIN FOR TESTING - REMOVE THIS IN PRODUCTION
-    // This will allow any user to log in with the correct email and the password "test123"
-    if (password === "test123") {
-      console.log('Using test password override');
-      
-      // Update last login time
-      user.lastLogin = new Date();
-      await user.save();
-      
-      return NextResponse.json({
-        message: 'Login successful (TEST MODE)',
-        user: {
-          id: user._id,
-          email: user.email,
-          firstName: user.firstName,
-          lastName: user.lastName,
-          role: user.role,
+        // Verify password using bcrypt
+        const isPasswordValid = await bcrypt.compare(password, user.password);
+        if (!isPasswordValid) {
+            return NextResponse.json(
+                { error: 'Invalid credentials' },
+                { status: 401 }
+            );
         }
-      });
-    }
 
-    // Validate password using direct comparison
-    if (password === user.password) {
-      console.log('Password matched directly');
-      
-      // Update last login time
-      user.lastLogin = new Date();
-      await user.save();
-      
-      return NextResponse.json({
-        message: 'Login successful',
-        user: {
-          id: user._id,
-          email: user.email,
-          firstName: user.firstName,
-          lastName: user.lastName,
-          role: user.role,
+        // Check if user is an admin
+        if (user.role !== 'admin') {
+            return NextResponse.json(
+                { error: 'Access denied. Admin privileges required.' },
+                { status: 403 }
+            );
         }
-      });
-    } else {
-      return NextResponse.json(
-        { message: 'Invalid credentials' },
-        { status: 401 }
-      );
+
+        // Return success response
+        return NextResponse.json(
+            { 
+                message: 'Login successful',
+                user: {
+                    id: user._id,
+                    email: user.email,
+                    firstName: user.firstName,
+                    lastName: user.lastName,
+                    role: user.role
+                }
+            },
+            { status: 200 }
+        );
+    } catch (error) {
+        console.error('Error during login:', error);
+        return NextResponse.json(
+            { error: 'Internal server error' },
+            { status: 500 }
+        );
     }
-  } catch (error) {
-    console.error('Login error:', error);
-    return NextResponse.json(
-      { message: 'Internal server error' },
-      { status: 500 }
-    );
-  }
 } 

@@ -19,6 +19,11 @@ const Navbar = () => {
     const [menuState, setMenuState] = useState(false)
     const [scrolled, setScrolled] = useState(false)
     const { resolvedTheme } = useTheme()
+    const [mounted, setMounted] = useState(false)
+
+    useEffect(() => {
+        setMounted(true)
+    }, [])
 
     // Handle scroll effect
     useEffect(() => {
@@ -88,7 +93,7 @@ const Navbar = () => {
                             >
                                 <Link href={"/"} className='flex items-start'>
                                     <Image
-                                        src={resolvedTheme === 'dark' ? "/dark-logo.png" : "/light-logo.png"}
+                                        src={mounted ? (resolvedTheme === 'dark' ? "/dark-logo.png" : "/light-logo.png") : "/light-logo.png"}
                                         alt="TaskPulse"
                                         width={130}
                                         height={0}

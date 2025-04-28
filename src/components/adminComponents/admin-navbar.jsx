@@ -6,12 +6,14 @@ import {
     DropdownMenu,
     DropdownMenuContent, DropdownMenuGroup, DropdownMenuItem,
     DropdownMenuLabel,
-    DropdownMenuTrigger
+    DropdownMenuTrigger,
+    DropdownMenuSeparator
 } from "@/components/ui/dropdown-menu.jsx";
 import {Avatar, AvatarFallback} from "@/components/ui/avatar.jsx";
 import {signOut, useSession} from "next-auth/react";
 import {useRouter} from "next/navigation.js";
 import {useEffect, useState} from "react";
+import { LogOut } from "lucide-react";
 
 const AdminNavbar = () => {
     const { data: session, status } = useSession();
@@ -19,13 +21,18 @@ const AdminNavbar = () => {
     const [isRedirecting, setIsRedirecting] = useState(false);
     const { resolvedTheme } = useTheme();
 
+    const handleLogout = async () => {
+        await signOut({ redirect: false });
+        router.push('/');
+    };
+
     useEffect(() => {
         if (status === 'unauthenticated' && !isRedirecting) {
             setIsRedirecting(true);
-            router.push('/login');
+            router.push('/');
         } else if (status === 'authenticated' && session?.user?.role !== 'admin' && !isRedirecting) {
             setIsRedirecting(true);
-            router.push('/dashboard');
+            router.push('/user');
         }
     }, [status, session, router, isRedirecting]);
 
@@ -82,6 +89,14 @@ const AdminNavbar = () => {
                                     </p>
                                 </div>
                             </DropdownMenuLabel>
+                            <DropdownMenuSeparator />
+                            <DropdownMenuItem
+                                onClick={handleLogout}
+                                className="cursor-pointer text-red-500 hover:text-red-600 focus:bg-red-50 hover:bg-red-50 dark:focus:bg-red-950/50 dark:hover:bg-red-950/50 transition-colors"
+                            >
+                                <LogOut className="mr-2 h-4 w-4" />
+                                <span>Log out</span>
+                            </DropdownMenuItem>
                         </DropdownMenuContent>
                     </DropdownMenu>
                 </div>

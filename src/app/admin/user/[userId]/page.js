@@ -732,22 +732,25 @@ export default function UserDetail() {
                     <CardContent>
                       {events && events.length > 0 ? (
                           <div className="space-y-4">
-                            {events.slice(0, 3).map((event) => (
+                            {events.slice(0, 3).map((event, index) => (
                                 <motion.div
-                                    key={event.id}
+                                    key={`event-${event.id || event._id || index}`}
                                     whileHover={{ x: 5 }}
                                     className="p-3 bg-gray-50 dark:bg-gray-900/30 rounded-xl"
                                 >
-                                  <div className="font-medium">{event.title}</div>
-                                  <div className="text-sm text-gray-500 dark:text-gray-400 mt-1 flex items-center">
-                                    <CalendarIcon className="h-3.5 w-3.5 mr-1" />
-                                    {formatDateTime(event.startTime)}
-                                  </div>
-                                  {event.location && (
-                                      <div className="text-sm text-gray-500 dark:text-gray-400 mt-1">
-                                        📍 {event.location}
-                                      </div>
-                                  )}
+                                    <div className="flex items-center justify-between">
+                                        <div>
+                                            <h4 className="font-medium text-gray-900 dark:text-gray-100">
+                                                {event.title}
+                                            </h4>
+                                            <p className="text-sm text-gray-500 dark:text-gray-400">
+                                                {new Date(event.date).toLocaleDateString()}
+                                            </p>
+                                        </div>
+                                        <span className="text-sm text-gray-500 dark:text-gray-400">
+                                            {event.status}
+                                        </span>
+                                    </div>
                                 </motion.div>
                             ))}
                           </div>
@@ -789,40 +792,40 @@ export default function UserDetail() {
                     <CardContent>
                       {tasks && tasks.length > 0 ? (
                           <div className="space-y-4">
-                            {tasks.slice(0, 5).map((task) => (
+                            {tasks.slice(0, 5).map((task, index) => (
                                 <motion.div
-                                    key={task.id}
+                                    key={`task-${task.id || task._id || index}`}
                                     whileHover={{ x: 5 }}
                                     className="p-4 bg-gray-50 dark:bg-gray-900/30 rounded-xl"
                                 >
-                                  <div className="flex justify-between items-start">
-                                    <div>
-                                      <div className="font-medium">{task.title}</div>
-                                      {task.description && (
-                                          <div className="text-sm text-gray-500 dark:text-gray-400 mt-1">
-                                            {task.description}
-                                          </div>
-                                      )}
-                                    </div>
-                                    <div className="flex space-x-2">
-                                      <Badge className={getPriorityColor(task.priority)}>
-                                        <div className="flex items-center">
-                                          {getPriorityIcon(task.priority)}
-                                          {task.priority}
+                                    <div className="flex justify-between items-start">
+                                        <div>
+                                            <div className="font-medium">{task.title}</div>
+                                            {task.description && (
+                                                <div className="text-sm text-gray-500 dark:text-gray-400 mt-1">
+                                                    {task.description}
+                                                </div>
+                                            )}
                                         </div>
-                                      </Badge>
-                                      <Badge className={getStatusColor(task.status)}>
-                                        {task.status === 'in_progress' ? 'In Progress' :
-                                            task.status?.charAt(0).toUpperCase() + task.status?.slice(1)}
-                                      </Badge>
+                                        <div className="flex space-x-2">
+                                            <Badge className={getPriorityColor(task.priority)}>
+                                                <div className="flex items-center">
+                                                    {getPriorityIcon(task.priority)}
+                                                    {task.priority}
+                                                </div>
+                                            </Badge>
+                                            <Badge className={getStatusColor(task.status)}>
+                                                {task.status === 'in_progress' ? 'In Progress' :
+                                                    task.status?.charAt(0).toUpperCase() + task.status?.slice(1)}
+                                            </Badge>
+                                        </div>
                                     </div>
-                                  </div>
-                                  {task.dueDate && (
-                                      <div className="text-sm text-gray-500 dark:text-gray-400 mt-2 flex items-center">
-                                        <Clock className="h-3.5 w-3.5 mr-1" />
-                                        Due: {formatDate(task.dueDate)}
-                                      </div>
-                                  )}
+                                    {task.dueDate && (
+                                        <div className="text-sm text-gray-500 dark:text-gray-400 mt-2 flex items-center">
+                                            <Clock className="h-3.5 w-3.5 mr-1" />
+                                            Due: {formatDate(task.dueDate)}
+                                        </div>
+                                    )}
                                 </motion.div>
                             ))}
                           </div>
@@ -966,7 +969,7 @@ export default function UserDetail() {
                         <div className="space-y-4">
                           {events.map((event) => (
                               <motion.div
-                                  key={event.id}
+                                  key={`event-${event.id}`}
                                   initial={{ opacity: 0, y: 10 }}
                                   animate={{ opacity: 1, y: 0 }}
                                   transition={{ type: "spring", stiffness: 100 }}

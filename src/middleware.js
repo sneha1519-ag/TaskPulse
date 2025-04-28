@@ -1,43 +1,80 @@
-import authConfig from "@/auth.config";
-import NextAuth from "next-auth";
-import {
-    DEFAULT_LOGIN_REDIRECT,
-    apiAuthPrefix,
-    publicRoutes,
-    authRoutes,
-} from "@/routes";
-
-const { auth } = NextAuth(authConfig);
+import { auth } from "@/auth";
+import { publicRoutes, authRoutes, apiAuthPrefix, DEFAULT_LOGIN_REDIRECT, ADMIN_LOGIN_REDIRECT, PROFESSIONAL_USER_REDIRECT } from "@/routes";
 
 export default auth((req) => {
     const { nextUrl } = req;
     const isLoggedIn = !!req.auth;
+    const isAdmin = req.auth?.user?.role === 'admin';
+    const isProfessionalUser = req.auth?.user?.role === 'professional';
+    const isRegularUser = req.auth?.user?.role === 'user';
 
     const isApiAuthRoute = nextUrl.pathname.startsWith(apiAuthPrefix);
+    const isPublicRoute = publicRoutes.includes(nextUrl.pathname);
     const isAuthRoute = authRoutes.includes(nextUrl.pathname);
-    const isPublicRoute = publicRoutes.some(route => {
-        if (route.includes("(.*)")) {
-            const baseRoute = route.replace("(.*)", "");
-            return nextUrl.pathname.startsWith(baseRoute);
-        }
-        return nextUrl.pathname === route;
-    });
 
     if (isApiAuthRoute) {
         return null;
     }
+
     if (isAuthRoute) {
         if (isLoggedIn) {
-            return Response.redirect(new URL(DEFAULT_LOGIN_REDIRECT, nextUrl));
+            if (isAdmin) {
+                return Response.redirect(new URL(ADMIN_LOGIN_REDIRECT, nextUrl));
+            } else if (isProfessionalUser) {
+                return Response.redirect(new URL(PROFESSIONAL_USER_REDIRECT, nextUrl));
+            } else {
+                return Response.redirect(new URL(DEFAULT_LOGIN_REDIRECT, nextUrl));
+            }
         }
         return null;
     }
-    if (!isPublicRoute && !isLoggedIn) {
+
+    if (!isLoggedIn && !isPublicRoute) {
         return Response.redirect(new URL("/login", nextUrl));
     }
+
+    // Handle admin routes
+    if (nextUrl.pathname.startsWith("/admin")) {
+        if (!isAdmin) {
+            if (isProfessionalUser) {
+                return Response.redirect(new URL(PROFESSIONAL_USER_REDIRECT, nextUrl));
+            } else {
+                return Response.redirect(new URL(DEFAULT_LOGIN_REDIRECT, nextUrl));
+            }
+        }
+    }
+
+    // Handle professional user routes
+    if (nextUrl.pathname.startsWith("/dashboard")) {
+        if (!isLoggedIn) {
+            return Response.redirect(new URL("/login", nextUrl));
+        }
+        if (!isProfessionalUser) {
+            if (isAdmin) {
+                return Response.redirect(new URL(ADMIN_LOGIN_REDIRECT, nextUrl));
+            } else {
+                return Response.redirect(new URL(DEFAULT_LOGIN_REDIRECT, nextUrl));
+            }
+        }
+    }
+
+    // Handle regular user routes
+    if (nextUrl.pathname.startsWith("/user")) {
+        if (!isLoggedIn) {
+            return Response.redirect(new URL("/login", nextUrl));
+        }
+        if (!isRegularUser) {
+            if (isAdmin) {
+                return Response.redirect(new URL(ADMIN_LOGIN_REDIRECT, nextUrl));
+            } else {
+                return Response.redirect(new URL(PROFESSIONAL_USER_REDIRECT, nextUrl));
+            }
+        }
+    }
+
     return null;
 });
 
 export const config = {
-    matcher: ["/((?!.*\\..*|_next).*)", "/", "/(api|trpc)(.*)"],
+    matcher: ["/((?!.+\\.[\\w]+$|_next).*)", "/", "/(api|trpc)(.*)"],
 };
