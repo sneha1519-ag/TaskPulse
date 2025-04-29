@@ -27,7 +27,17 @@ export async function GET(req) {
       userEmail = emailParam || emailHeader;
       userId = userIdParam || userIdHeader;
       
+      console.log('Auth details from params/headers:', { 
+        emailParam, 
+        userIdParam,
+        emailHeader, 
+        userIdHeader,
+        finalEmail: userEmail,
+        finalUserId: userId
+      });
+      
       if (!userEmail && !userId) {
+        console.error('No valid user identification provided');
         return NextResponse.json(
           { error: 'Unauthorized - No valid user identification provided' },
           { status: 401 }
@@ -47,9 +57,10 @@ export async function GET(req) {
     };
     
     if (userEmail) userQuery.$or.push({ email: userEmail });
-    if (userId) userQuery.$or.push({ _id: userId });
+    if (userId && userId.length >= 12) userQuery.$or.push({ _id: userId });
     
     if (userQuery.$or.length === 0) {
+      console.error('Missing user identification');
       return NextResponse.json(
         { error: 'Missing user identification' },
         { status: 400 }
@@ -60,12 +71,14 @@ export async function GET(req) {
     const user = await User.findOne(userQuery);
     
     if (!user) {
+      console.error('User not found with provided credentials:', userQuery);
       return NextResponse.json(
         { error: 'User not found with provided credentials' },
         { status: 404 }
       );
     }
     
+    console.log(`Found user: ${user.email} (${user._id})`);
     console.log(`Fetching tasks for user: ${user.email} (${user._id})`);
     
     // Find all tasks assigned to the user

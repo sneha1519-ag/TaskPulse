@@ -41,6 +41,7 @@ export default function LoginPage() {
             router.push('/user/login');
         }
     };
+    
 
     const handleAdminLogin = async (e) => {
         e.preventDefault();

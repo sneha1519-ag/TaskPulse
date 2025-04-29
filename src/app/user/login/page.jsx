@@ -19,34 +19,78 @@ export default function LoginPage() {
 
   const handleSubmit = async (e) => {
     e.preventDefault();
-    
-    // Basic validation
+    setError(null);
+    setLoading(true);
+
     if (!email || !password) {
-      setError('Email and password are required');
+      setError("Please fill in all fields");
+      setLoading(false);
       return;
     }
 
     try {
-      setLoading(true);
-      setError('');
-
-      const result = await signIn('credentials', {
-        email,
-        password,
-        role: 'user',
-        redirect: false,
+      console.log('Attempting login with:', { email, role: 'user' });
+      
+      // Try direct API login first
+      const loginResponse = await fetch('/api/user/login', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ email, password }),
       });
+      
+      let userData = null;
+      
+      if (loginResponse.ok) {
+        const loginData = await loginResponse.json();
+        console.log('Login successful, user data:', loginData);
+        userData = loginData.user;
+      } else {
+        // Fallback to nextauth credentials
+        console.log('Direct API login failed, trying NextAuth...');
+        const result = await signIn("credentials", {
+          email,
+          password,
+          role: "user",
+          redirect: false,
+        });
 
-      if (result?.error) {
-        throw new Error(result.error);
-      }
+        if (result?.error) {
+          console.error('NextAuth login error:', result.error);
+          setError(result.error);
+          setLoading(false);
+          return;
+        }
 
-      if (result?.ok) {
-        router.push('/user');
+        // Fetch user data after successful NextAuth login
+        const userRes = await fetch(`/api/user/me`);
+        if (userRes.ok) {
+          const userDataResponse = await userRes.json();
+          console.log('User data fetched after login:', userDataResponse);
+          userData = userDataResponse.user;
+        } else {
+          console.error('Failed to fetch user data after login');
+          const errorData = await userRes.json().catch(() => ({}));
+          throw new Error(errorData.error || 'Failed to fetch user data');
+        }
       }
-    } catch (err) {
-      setError(err.message);
-    } finally {
+      
+      if (!userData || !userData._id) {
+        console.error('No valid user data received');
+        throw new Error('Invalid user data received');
+      }
+      
+      // Store user data in sessionStorage
+      console.log('Storing user data in sessionStorage:', userData);
+      sessionStorage.setItem('user', JSON.stringify(userData));
+      
+      // If login is successful, redirect to the user page
+      console.log('Login and user data storage successful, redirecting to /user');
+      router.push("/user");
+    } catch (error) {
+      console.error('Login error:', error);
+      setError(error.message || "An error occurred during login");
       setLoading(false);
     }
   };

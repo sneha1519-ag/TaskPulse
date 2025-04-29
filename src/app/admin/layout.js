@@ -26,16 +26,16 @@ export default function AdminLayout({ children }) {
   }
 
   if (status === 'authenticated' && session?.user?.role === 'admin') {
-    return (
-      <div className="w-full">
-        <AdminNavbar/>
-        <div className="flex min-h-screen pt-[4rem]">
-          <main className="flex-1 overflow-y-auto">
-            {children}
-          </main>
+  return (
+        <div className="w-full">
+          <AdminNavbar/>
+          <div className="flex min-h-screen pt-[4rem]">
+            <main className="flex-1 overflow-y-auto">
+              {children}
+            </main>
+          </div>
         </div>
-      </div>
-    );
+  );
   }
 
   return null;

@@ -23,11 +23,11 @@ export default {
             credentials: {
                 email: { label: "Email", type: "email" },
                 password: { label: "Password", type: "password" },
-                role: { label: "Role", type: "text" }
+                role: { label: "Role", type: "text", required: false }
             },
             async authorize(credentials) {
                 if (!credentials?.email || !credentials?.password) {
-                    throw new Error("Missing credentials");
+                    throw new Error("Email and password are required");
                 }
 
                 try {
@@ -38,17 +38,25 @@ export default {
                         throw new Error("User not found");
                     }
 
-                    const isValid = await bcrypt.compare(credentials.password, user.password);
+                    // Use the comparePassword method
+                    const isValid = await user.comparePassword(credentials.password);
 
                     if (!isValid) {
                         throw new Error("Invalid password");
                     }
 
+                    // Only check role if it's provided
+                    if (credentials.role && user.role !== credentials.role) {
+                        throw new Error(`Access denied. ${credentials.role} privileges required.`);
+                    }
+
                     return {
                         id: user._id.toString(),
                         email: user.email,
-                        name: user.name,
+                        name: `${user.firstName} ${user.lastName}`,
                         role: user.role,
+                        firstName: user.firstName,
+                        lastName: user.lastName
                     };
                 } catch (error) {
                     console.error("Auth error:", error);

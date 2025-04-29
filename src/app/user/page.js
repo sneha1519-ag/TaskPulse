@@ -80,6 +80,7 @@ export default function UserDashboard() {
   const { showSuccess, showError } = useToast();
   const [user, setUser] = useState(null);
   const [loading, setLoading] = useState(true);
+  const [tasksLoading, setTasksLoading] = useState(true);
   const [tasks, setTasks] = useState([]);
   const [tasksByStatus, setTasksByStatus] = useState({
     pending: [],
@@ -106,47 +107,82 @@ export default function UserDashboard() {
   useEffect(() => {
     // Check if user is logged in by retrieving from sessionStorage
     const userData = sessionStorage.getItem('user');
+    console.log('User data from session:', userData);
 
     if (!userData) {
-      router.push('/user/login');
+      console.log('No user data found in sessionStorage, checking API...');
+      
+      // Try to fetch user data from API
+      const fetchUserFromAPI = async () => {
+        try {
+          const response = await fetch('/api/user/me');
+          if (response.ok) {
+            const data = await response.json();
+            console.log('User data fetched from API:', data);
+            
+            if (data.user && data.user._id) {
+              // Store the user data in sessionStorage
+              sessionStorage.setItem('user', JSON.stringify(data.user));
+              setUser(data.user);
+              fetchUserTasks(data.user);
+              setLoading(false);
+              return;
+            }
+          }
+          // If we couldn't get user data from API, redirect to login
+          console.log('Could not retrieve user data from API, redirecting to login');
+          router.push('/user/login');
+        } catch (error) {
+          console.error('Error fetching user data from API:', error);
+          router.push('/user/login');
+        }
+      };
+
+      fetchUserFromAPI();
       return;
     }
 
     try {
-      setUser(JSON.parse(userData));
+      const parsedUser = JSON.parse(userData);
+      console.log('Parsed user data:', parsedUser);
+      setUser(parsedUser);
+      
+      // Immediately fetch tasks after setting user
+      fetchUserTasks(parsedUser);
     } catch (error) {
       console.error('Error parsing user data:', error);
+      setError('Failed to parse user data. Please login again.');
       router.push('/user/login');
     } finally {
       setLoading(false);
     }
-  }, [router]);
+  }, []);
 
-  // Separate effect to fetch tasks only when user data is available
-  useEffect(() => {
-    if (user && (user.email || user._id)) {
-      fetchUserTasks();
-    }
-  }, [user]);
-
-  const fetchUserTasks = async () => {
+  const fetchUserTasks = async (userData) => {
     try {
-      setLoading(true);
+      setTasksLoading(true);
+      setError(null);
+      
+      // Use the passed userData or fall back to the state
+      const currentUser = userData || user;
 
-      if (!user || (!user.email && !user._id)) {
+      if (!currentUser || (!currentUser.email && !currentUser._id)) {
         console.error('No user data available for task fetch');
-        setError('User authentication error');
+        setError('User authentication error. Please login again.');
+        setTasksLoading(false);
         return;
       }
 
       // Include the user email or ID in the request URL
-      const userId = user._id || '';
-      const userEmail = user.email || '';
+      const userId = currentUser._id || '';
+      const userEmail = currentUser.email || '';
 
       console.log('Fetching tasks for user:', userEmail, userId);
 
       // Create URL with query parameters
       const url = `/api/user/tasks?email=${encodeURIComponent(userEmail)}&userId=${encodeURIComponent(userId)}`;
+      console.log('API request URL:', url);
+      
       const response = await fetch(url, {
         headers: {
           'Content-Type': 'application/json',
@@ -156,9 +192,17 @@ export default function UserDashboard() {
         }
       });
 
+      console.log('API response status:', response.status);
+      
       if (!response.ok) {
-        const errorData = await response.json();
-        throw new Error(errorData.error || 'Failed to fetch tasks');
+        let errorMessage = `Failed to fetch tasks: ${response.status}`;
+        try {
+          const errorData = await response.json();
+          errorMessage = errorData.error || errorMessage;
+        } catch (e) {
+          console.error('Could not parse error response:', e);
+        }
+        throw new Error(errorMessage);
       }
 
       const data = await response.json();
@@ -185,10 +229,10 @@ export default function UserDashboard() {
         cancelled: 0
       });
     } catch (error) {
-      setError(error.message);
       console.error('Error fetching tasks:', error);
+      setError(error.message || 'Failed to load tasks. Please try again.');
     } finally {
-      setLoading(false);
+      setTasksLoading(false);
     }
   };
 
@@ -262,7 +306,7 @@ export default function UserDashboard() {
       }
 
       // Refresh tasks after update
-      await fetchUserTasks();
+      await fetchUserTasks(user);
     } catch (error) {
       setError(error.message);
       console.error('Error updating task status:', error);
@@ -403,7 +447,7 @@ export default function UserDashboard() {
                 <Button
                     variant="outline"
                     className="border-destructive/30 hover:bg-destructive/5"
-                    onClick={fetchUserTasks}
+                    onClick={() => fetchUserTasks(user)}
                 >
                   <motion.span
                       initial={{ x: 0 }}
@@ -493,193 +537,206 @@ export default function UserDashboard() {
             </motion.div>
           </motion.div>
 
-          <motion.div
-              variants={fadeInUp}
-              initial="hidden"
-              animate="visible"
-              className="mb-10"
-          >
-            <Tabs defaultValue="all" className="w-full">
-              <TabsList className="mb-6 p-1 bg-muted/40 w-full md:w-auto rounded-2xl">
-                <TabsTrigger
-                    value="all"
-                    className="rounded-xl text-sm md:text-base px-4 py-2 data-[state=active]:bg-white dark:data-[state=active]:bg-black data-[state=active]:shadow-sm transition-all duration-200"
-                >
-                  All Tasks
-                </TabsTrigger>
-                <TabsTrigger
-                    value="pending"
-                    className="rounded-xl text-sm md:text-base px-4 py-2 data-[state=active]:bg-white dark:data-[state=active]:bg-black data-[state=active]:shadow-sm transition-all duration-200"
-                >
-                  Pending
-                </TabsTrigger>
-                <TabsTrigger
-                    value="in-progress"
-                    className="rounded-xl text-sm md:text-base px-4 py-2 data-[state=active]:bg-white dark:data-[state=active]:bg-black data-[state=active]:shadow-sm transition-all duration-200"
-                >
-                  In Progress
-                </TabsTrigger>
-                <TabsTrigger
-                    value="completed"
-                    className="rounded-xl text-sm md:text-base px-4 py-2 data-[state=active]:bg-white dark:data-[state=active]:bg-black data-[state=active]:shadow-sm transition-all duration-200"
-                >
-                  Completed
-                </TabsTrigger>
-              </TabsList>
-
-              <TabsContent value="all" key="all" className="mt-0">
+          {tasksLoading ? (
+              <motion.div
+                variants={fadeInUp}
+                className="flex justify-center p-12"
+              >
                 <motion.div
-                    className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-6"
-                    variants={staggerContainer}
-                    initial="hidden"
-                    animate="visible"
-                >
-                  {loading ? (
-                      renderSkeletonCards()
-                  ) : tasks.length === 0 ? (
-                      <motion.div
-                          className="col-span-full text-center p-10 bg-muted/30 rounded-2xl"
-                          variants={fadeInUp}
-                      >
-                        <p className="text-muted-foreground text-lg">You don't have any tasks assigned yet.</p>
-                      </motion.div>
-                  ) : (
-                      tasks.map((task, index) => (
-                          <motion.div
-                              key={task._id}
-                              variants={fadeInUp}
-                              custom={index}
-                          >
-                            <TaskCard
-                                task={task}
-                                onUpdateStatus={updateTaskStatus}
-                                isLoading={loadingTask === task._id}
-                                formatDate={formatDate}
-                                getPriorityIcon={getPriorityIcon}
-                                getPriorityColor={getPriorityColor}
-                                getStatusColor={getStatusColor}
-                            />
-                          </motion.div>
-                      ))
-                  )}
-                </motion.div>
-              </TabsContent>
+                  className="h-10 w-10 border-4 border-primary border-t-transparent rounded-full"
+                  animate={{ rotate: 360 }}
+                  transition={{ duration: 1.5, repeat: Infinity, ease: "linear" }}
+                />
+              </motion.div>
+          ) : (
+            <motion.div
+                variants={fadeInUp}
+                initial="hidden"
+                animate="visible"
+                className="mb-10"
+            >
+              <Tabs defaultValue="all" className="w-full">
+                <TabsList className="mb-6 p-1 bg-muted/40 w-full md:w-auto rounded-2xl">
+                  <TabsTrigger
+                      value="all"
+                      className="rounded-xl text-sm md:text-base px-4 py-2 data-[state=active]:bg-white dark:data-[state=active]:bg-black data-[state=active]:shadow-sm transition-all duration-200"
+                  >
+                    All Tasks
+                  </TabsTrigger>
+                  <TabsTrigger
+                      value="pending"
+                      className="rounded-xl text-sm md:text-base px-4 py-2 data-[state=active]:bg-white dark:data-[state=active]:bg-black data-[state=active]:shadow-sm transition-all duration-200"
+                  >
+                    Pending
+                  </TabsTrigger>
+                  <TabsTrigger
+                      value="in-progress"
+                      className="rounded-xl text-sm md:text-base px-4 py-2 data-[state=active]:bg-white dark:data-[state=active]:bg-black data-[state=active]:shadow-sm transition-all duration-200"
+                  >
+                    In Progress
+                  </TabsTrigger>
+                  <TabsTrigger
+                      value="completed"
+                      className="rounded-xl text-sm md:text-base px-4 py-2 data-[state=active]:bg-white dark:data-[state=active]:bg-black data-[state=active]:shadow-sm transition-all duration-200"
+                  >
+                    Completed
+                  </TabsTrigger>
+                </TabsList>
 
-              <TabsContent value="pending" key="pending" className="mt-0">
-                <motion.div
-                    className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-6"
-                    variants={staggerContainer}
-                    initial="hidden"
-                    animate="visible"
-                >
-                  {loading ? (
-                      renderSkeletonCards()
-                  ) : tasksByStatus.pending.length === 0 ? (
-                      <motion.div
-                          className="col-span-full text-center p-10 bg-muted/30 rounded-2xl"
-                          variants={fadeInUp}
-                      >
-                        <p className="text-muted-foreground text-lg">You don't have any pending tasks.</p>
-                      </motion.div>
-                  ) : (
-                      tasksByStatus.pending.map((task, index) => (
-                          <motion.div
-                              key={task._id}
-                              variants={fadeInUp}
-                              custom={index}
-                          >
-                            <TaskCard
-                                task={task}
-                                onUpdateStatus={updateTaskStatus}
-                                isLoading={loadingTask === task._id}
-                                formatDate={formatDate}
-                                getPriorityIcon={getPriorityIcon}
-                                getPriorityColor={getPriorityColor}
-                                getStatusColor={getStatusColor}
-                            />
-                          </motion.div>
-                      ))
-                  )}
-                </motion.div>
-              </TabsContent>
+                <TabsContent value="all" key="all" className="mt-0">
+                  <motion.div
+                      className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-6"
+                      variants={staggerContainer}
+                      initial="hidden"
+                      animate="visible"
+                  >
+                    {loading ? (
+                        renderSkeletonCards()
+                    ) : tasks.length === 0 ? (
+                        <motion.div
+                            className="col-span-full text-center p-10 bg-muted/30 rounded-2xl"
+                            variants={fadeInUp}
+                        >
+                          <p className="text-muted-foreground text-lg">You don't have any tasks assigned yet.</p>
+                        </motion.div>
+                    ) : (
+                        tasks.map((task, index) => (
+                            <motion.div
+                                key={task._id}
+                                variants={fadeInUp}
+                                custom={index}
+                            >
+                              <TaskCard
+                                  task={task}
+                                  onUpdateStatus={updateTaskStatus}
+                                  isLoading={loadingTask === task._id}
+                                  formatDate={formatDate}
+                                  getPriorityIcon={getPriorityIcon}
+                                  getPriorityColor={getPriorityColor}
+                                  getStatusColor={getStatusColor}
+                              />
+                            </motion.div>
+                        ))
+                    )}
+                  </motion.div>
+                </TabsContent>
 
-              <TabsContent value="in-progress" key="in-progress" className="mt-0">
-                <motion.div
-                    className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-6"
-                    variants={staggerContainer}
-                    initial="hidden"
-                    animate="visible"
-                >
-                  {loading ? (
-                      renderSkeletonCards()
-                  ) : tasksByStatus.in_progress.length === 0 ? (
-                      <motion.div
-                          className="col-span-full text-center p-10 bg-muted/30 rounded-2xl"
-                          variants={fadeInUp}
-                      >
-                        <p className="text-muted-foreground text-lg">You don't have any tasks in progress.</p>
-                      </motion.div>
-                  ) : (
-                      tasksByStatus.in_progress.map((task, index) => (
-                          <motion.div
-                              key={task._id}
-                              variants={fadeInUp}
-                              custom={index}
-                          >
-                            <TaskCard
-                                task={task}
-                                onUpdateStatus={updateTaskStatus}
-                                isLoading={loadingTask === task._id}
-                                formatDate={formatDate}
-                                getPriorityIcon={getPriorityIcon}
-                                getPriorityColor={getPriorityColor}
-                                getStatusColor={getStatusColor}
-                            />
-                          </motion.div>
-                      ))
-                  )}
-                </motion.div>
-              </TabsContent>
+                <TabsContent value="pending" key="pending" className="mt-0">
+                  <motion.div
+                      className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-6"
+                      variants={staggerContainer}
+                      initial="hidden"
+                      animate="visible"
+                  >
+                    {loading ? (
+                        renderSkeletonCards()
+                    ) : tasksByStatus.pending.length === 0 ? (
+                        <motion.div
+                            className="col-span-full text-center p-10 bg-muted/30 rounded-2xl"
+                            variants={fadeInUp}
+                        >
+                          <p className="text-muted-foreground text-lg">You don't have any pending tasks.</p>
+                        </motion.div>
+                    ) : (
+                        tasksByStatus.pending.map((task, index) => (
+                            <motion.div
+                                key={task._id}
+                                variants={fadeInUp}
+                                custom={index}
+                            >
+                              <TaskCard
+                                  task={task}
+                                  onUpdateStatus={updateTaskStatus}
+                                  isLoading={loadingTask === task._id}
+                                  formatDate={formatDate}
+                                  getPriorityIcon={getPriorityIcon}
+                                  getPriorityColor={getPriorityColor}
+                                  getStatusColor={getStatusColor}
+                              />
+                            </motion.div>
+                        ))
+                    )}
+                  </motion.div>
+                </TabsContent>
 
-              <TabsContent value="completed" key="completed" className="mt-0">
-                <motion.div
-                    className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-6"
-                    variants={staggerContainer}
-                    initial="hidden"
-                    animate="visible"
-                >
-                  {loading ? (
-                      renderSkeletonCards()
-                  ) : tasksByStatus.completed.length === 0 ? (
-                      <motion.div
-                          className="col-span-full text-center p-10 bg-muted/30 rounded-2xl"
-                          variants={fadeInUp}
-                      >
-                        <p className="text-muted-foreground text-lg">You haven't completed any tasks yet.</p>
-                      </motion.div>
-                  ) : (
-                      tasksByStatus.completed.map((task, index) => (
-                          <motion.div
-                              key={task._id}
-                              variants={fadeInUp}
-                              custom={index}
-                          >
-                            <TaskCard
-                                task={task}
-                                onUpdateStatus={updateTaskStatus}
-                                isLoading={loadingTask === task._id}
-                                formatDate={formatDate}
-                                getPriorityIcon={getPriorityIcon}
-                                getPriorityColor={getPriorityColor}
-                                getStatusColor={getStatusColor}
-                            />
-                          </motion.div>
-                      ))
-                  )}
-                </motion.div>
-              </TabsContent>
-            </Tabs>
-          </motion.div>
+                <TabsContent value="in-progress" key="in-progress" className="mt-0">
+                  <motion.div
+                      className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-6"
+                      variants={staggerContainer}
+                      initial="hidden"
+                      animate="visible"
+                  >
+                    {loading ? (
+                        renderSkeletonCards()
+                    ) : tasksByStatus.in_progress.length === 0 ? (
+                        <motion.div
+                            className="col-span-full text-center p-10 bg-muted/30 rounded-2xl"
+                            variants={fadeInUp}
+                        >
+                          <p className="text-muted-foreground text-lg">You don't have any tasks in progress.</p>
+                        </motion.div>
+                    ) : (
+                        tasksByStatus.in_progress.map((task, index) => (
+                            <motion.div
+                                key={task._id}
+                                variants={fadeInUp}
+                                custom={index}
+                            >
+                              <TaskCard
+                                  task={task}
+                                  onUpdateStatus={updateTaskStatus}
+                                  isLoading={loadingTask === task._id}
+                                  formatDate={formatDate}
+                                  getPriorityIcon={getPriorityIcon}
+                                  getPriorityColor={getPriorityColor}
+                                  getStatusColor={getStatusColor}
+                              />
+                            </motion.div>
+                        ))
+                    )}
+                  </motion.div>
+                </TabsContent>
+
+                <TabsContent value="completed" key="completed" className="mt-0">
+                  <motion.div
+                      className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-6"
+                      variants={staggerContainer}
+                      initial="hidden"
+                      animate="visible"
+                  >
+                    {loading ? (
+                        renderSkeletonCards()
+                    ) : tasksByStatus.completed.length === 0 ? (
+                        <motion.div
+                            className="col-span-full text-center p-10 bg-muted/30 rounded-2xl"
+                            variants={fadeInUp}
+                        >
+                          <p className="text-muted-foreground text-lg">You haven't completed any tasks yet.</p>
+                        </motion.div>
+                    ) : (
+                        tasksByStatus.completed.map((task, index) => (
+                            <motion.div
+                                key={task._id}
+                                variants={fadeInUp}
+                                custom={index}
+                            >
+                              <TaskCard
+                                  task={task}
+                                  onUpdateStatus={updateTaskStatus}
+                                  isLoading={loadingTask === task._id}
+                                  formatDate={formatDate}
+                                  getPriorityIcon={getPriorityIcon}
+                                  getPriorityColor={getPriorityColor}
+                                  getStatusColor={getStatusColor}
+                              />
+                            </motion.div>
+                        ))
+                    )}
+                  </motion.div>
+                </TabsContent>
+              </Tabs>
+            </motion.div>
+          )}
         </motion.div>
       </>
   );

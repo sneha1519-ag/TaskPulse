@@ -23,7 +23,7 @@ export default auth((req) => {
             } else if (isProfessionalUser) {
                 return Response.redirect(new URL(PROFESSIONAL_USER_REDIRECT, nextUrl));
             } else {
-                return Response.redirect(new URL(DEFAULT_LOGIN_REDIRECT, nextUrl));
+            return Response.redirect(new URL(DEFAULT_LOGIN_REDIRECT, nextUrl));
             }
         }
         return null;

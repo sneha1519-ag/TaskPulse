@@ -34,7 +34,7 @@ const UserNavbar = ({ user }) => {
 
   const handleLogout = () => {
     sessionStorage.removeItem('user');
-    router.push('/login');
+    router.push('/user/login');
   };
 
   const getInitials = (name) => {

@@ -746,11 +746,11 @@ export default function UserDetail() {
                                             <p className="text-sm text-gray-500 dark:text-gray-400">
                                                 {new Date(event.date).toLocaleDateString()}
                                             </p>
-                                        </div>
+                                  </div>
                                         <span className="text-sm text-gray-500 dark:text-gray-400">
                                             {event.status}
                                         </span>
-                                    </div>
+                                      </div>
                                 </motion.div>
                             ))}
                           </div>
@@ -798,34 +798,34 @@ export default function UserDetail() {
                                     whileHover={{ x: 5 }}
                                     className="p-4 bg-gray-50 dark:bg-gray-900/30 rounded-xl"
                                 >
-                                    <div className="flex justify-between items-start">
-                                        <div>
-                                            <div className="font-medium">{task.title}</div>
-                                            {task.description && (
-                                                <div className="text-sm text-gray-500 dark:text-gray-400 mt-1">
-                                                    {task.description}
-                                                </div>
-                                            )}
-                                        </div>
-                                        <div className="flex space-x-2">
-                                            <Badge className={getPriorityColor(task.priority)}>
-                                                <div className="flex items-center">
-                                                    {getPriorityIcon(task.priority)}
-                                                    {task.priority}
-                                                </div>
-                                            </Badge>
-                                            <Badge className={getStatusColor(task.status)}>
-                                                {task.status === 'in_progress' ? 'In Progress' :
-                                                    task.status?.charAt(0).toUpperCase() + task.status?.slice(1)}
-                                            </Badge>
-                                        </div>
+                                  <div className="flex justify-between items-start">
+                                    <div>
+                                      <div className="font-medium">{task.title}</div>
+                                      {task.description && (
+                                          <div className="text-sm text-gray-500 dark:text-gray-400 mt-1">
+                                            {task.description}
+                                          </div>
+                                      )}
                                     </div>
-                                    {task.dueDate && (
-                                        <div className="text-sm text-gray-500 dark:text-gray-400 mt-2 flex items-center">
-                                            <Clock className="h-3.5 w-3.5 mr-1" />
-                                            Due: {formatDate(task.dueDate)}
+                                    <div className="flex space-x-2">
+                                      <Badge className={getPriorityColor(task.priority)}>
+                                        <div className="flex items-center">
+                                          {getPriorityIcon(task.priority)}
+                                          {task.priority}
                                         </div>
-                                    )}
+                                      </Badge>
+                                      <Badge className={getStatusColor(task.status)}>
+                                        {task.status === 'in_progress' ? 'In Progress' :
+                                            task.status?.charAt(0).toUpperCase() + task.status?.slice(1)}
+                                      </Badge>
+                                    </div>
+                                  </div>
+                                  {task.dueDate && (
+                                      <div className="text-sm text-gray-500 dark:text-gray-400 mt-2 flex items-center">
+                                        <Clock className="h-3.5 w-3.5 mr-1" />
+                                        Due: {formatDate(task.dueDate)}
+                                      </div>
+                                  )}
                                 </motion.div>
                             ))}
                           </div>
