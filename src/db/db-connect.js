@@ -1,6 +1,4 @@
-// Use dynamic import for Mongoose to avoid browser import issues
 import mongoose from 'mongoose';
-import 'server-only';
 
 const MONGODB_URI = 'mongodb://127.0.0.1:27017/taskpulse';
 
