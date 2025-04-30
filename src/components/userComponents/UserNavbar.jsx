@@ -27,14 +27,26 @@ import { Badge } from "@/components/ui/badge"
 import Image from 'next/image'
 import Link from 'next/link'
 import { useTheme } from "next-themes";
+import { signOut } from 'next-auth/react'
 
 const UserNavbar = ({ user }) => {
   const router = useRouter();
   const [isNotificationOpen, setIsNotificationOpen] = useState(false);
 
-  const handleLogout = () => {
+  const handleLogout = async () => {
+    // Clear session storage first
     sessionStorage.removeItem('user');
-    router.push('/user/login');
+    
+    try {
+      // Try to also sign out from NextAuth
+      await signOut({ redirect: false });
+      console.log('Logged out successfully');
+    } catch (error) {
+      console.error('Error during logout:', error);
+    } finally {
+      // Always redirect to login page
+      router.push('/user/login');
+    }
   };
 
   const getInitials = (name) => {

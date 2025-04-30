@@ -22,8 +22,8 @@ export default auth((req) => {
                 return Response.redirect(new URL(ADMIN_LOGIN_REDIRECT, nextUrl));
             } else if (isProfessionalUser) {
                 return Response.redirect(new URL(PROFESSIONAL_USER_REDIRECT, nextUrl));
-            } else {
-            return Response.redirect(new URL(DEFAULT_LOGIN_REDIRECT, nextUrl));
+            } else if (isRegularUser) {
+                return Response.redirect(new URL(DEFAULT_LOGIN_REDIRECT, nextUrl));
             }
         }
         return null;
@@ -32,6 +32,19 @@ export default auth((req) => {
     if (!isLoggedIn && !isPublicRoute) {
         return Response.redirect(new URL("/login", nextUrl));
     }
+
+    // Login page is already public, remove special handling to prevent loop
+    // if (nextUrl.pathname === "/login") {
+    //     if (isLoggedIn) {
+    //         if (isAdmin) {
+    //             return Response.redirect(new URL(ADMIN_LOGIN_REDIRECT, nextUrl));
+    //         } else if (isProfessionalUser) {
+    //             return Response.redirect(new URL(PROFESSIONAL_USER_REDIRECT, nextUrl));
+    //         } else if (isRegularUser) {
+    //             return Response.redirect(new URL(DEFAULT_LOGIN_REDIRECT, nextUrl));
+    //         }
+    //     }
+    // }
 
     // Handle admin routes
     if (nextUrl.pathname.startsWith("/admin")) {

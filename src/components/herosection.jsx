@@ -169,7 +169,6 @@ export default function HeroSection() {
                                 alt="app screen"
                                 width={2796}
                                 height={2008}
-                                priority
                             />
                             <Image
                                 className="relative w-full h-auto dark:hidden"
@@ -177,7 +176,6 @@ export default function HeroSection() {
                                 alt="app screen"
                                 width={2796}
                                 height={2008}
-                                priority
                             />
                         </motion.div>
                     </motion.div>

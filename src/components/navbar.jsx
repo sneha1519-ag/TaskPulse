@@ -39,13 +39,14 @@ const Navbar = () => {
         animate: { opacity: 1, y: 0, transition: { duration: 0.5 } }
     }
 
-    const linkVariants = {
+    // Only define these variants when mounted to prevent hydration mismatch
+    const linkVariants = mounted ? {
         hover: {
             scale: 1.05,
             color: resolvedTheme === 'dark' ? '#A9B5DF' : '#2D336B',
             transition: { type: "spring", stiffness: 400, damping: 10 }
         }
-    }
+    } : {};
 
     const mobileMenuVariants = {
         closed: {
@@ -73,6 +74,27 @@ const Navbar = () => {
         open: { opacity: 1, x: 0 }
     }
 
+    // Don't render client-specific content until mounted
+    if (!mounted) {
+        return <div className="fixed z-20 w-full bg-white/50 dark:bg-zinc-950/50 border-b border-dashed border-transparent">
+            <div className="m-auto max-w-5xl px-6">
+                <div className="flex items-center justify-between py-2 lg:py-3">
+                    <div className="flex justify-between items-start">
+                        <Link href={"/"} className='flex items-start'>
+                            <Image
+                                src="/light-logo.png"
+                                alt="TaskPulse"
+                                width={130}
+                                height={0}
+                                className="py-1"
+                            />
+                        </Link>
+                    </div>
+                </div>
+            </div>
+        </div>
+    }
+
     return (
         <motion.header
             initial="initial"
@@ -93,7 +115,7 @@ const Navbar = () => {
                             >
                                 <Link href={"/"} className='flex items-start'>
                                     <Image
-                                        src={mounted ? (resolvedTheme === 'dark' ? "/dark-logo.png" : "/light-logo.png") : "/light-logo.png"}
+                                        src={resolvedTheme === 'dark' ? "/dark-logo.png" : "/light-logo.png"}
                                         alt="TaskPulse"
                                         width={130}
                                         height={0}

@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 import { Button } from '@/components/ui/button';
@@ -31,63 +31,64 @@ export default function LoginPage() {
     try {
       console.log('Attempting login with:', { email, role: 'user' });
       
-      // Try direct API login first
-      const loginResponse = await fetch('/api/user/login', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({ email, password }),
+      // Use NextAuth signIn first - more reliable for session management
+      const result = await signIn("credentials", {
+        email,
+        password,
+        role: "user",
+        redirect: false,
       });
-      
-      let userData = null;
-      
-      if (loginResponse.ok) {
+
+      if (result?.error) {
+        console.error('NextAuth login error:', result.error);
+        
+        // Try direct API login as fallback
+        const loginResponse = await fetch('/api/user/login', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({ email, password }),
+        });
+        
+        if (!loginResponse.ok) {
+          const errorData = await loginResponse.json().catch(() => ({}));
+          throw new Error(errorData.error || "Login failed");
+        }
+        
         const loginData = await loginResponse.json();
-        console.log('Login successful, user data:', loginData);
-        userData = loginData.user;
-      } else {
-        // Fallback to nextauth credentials
-        console.log('Direct API login failed, trying NextAuth...');
-        const result = await signIn("credentials", {
+        console.log('API Login successful, user data:', loginData);
+        
+        // Store user data in sessionStorage
+        sessionStorage.setItem('user', JSON.stringify(loginData.user));
+        
+        // Sign in with NextAuth again to establish session
+        await signIn("credentials", {
           email,
           password,
           role: "user",
           redirect: false,
         });
-
-        if (result?.error) {
-          console.error('NextAuth login error:', result.error);
-          setError(result.error);
-          setLoading(false);
-          return;
-        }
-
-        // Fetch user data after successful NextAuth login
-        const userRes = await fetch(`/api/user/me`);
-        if (userRes.ok) {
-          const userDataResponse = await userRes.json();
-          console.log('User data fetched after login:', userDataResponse);
-          userData = userDataResponse.user;
-        } else {
-          console.error('Failed to fetch user data after login');
-          const errorData = await userRes.json().catch(() => ({}));
-          throw new Error(errorData.error || 'Failed to fetch user data');
-        }
       }
       
-      if (!userData || !userData._id) {
-        console.error('No valid user data received');
-        throw new Error('Invalid user data received');
+      // Fetch user data to confirm login status and get user details
+      const userRes = await fetch(`/api/user/me`);
+      if (userRes.ok) {
+        const userDataResponse = await userRes.json();
+        console.log('User data fetched after login:', userDataResponse);
+        
+        // Store user data in sessionStorage
+        sessionStorage.setItem('user', JSON.stringify(userDataResponse.user));
+        
+        // Redirect to user dashboard
+        console.log('Login successful, redirecting to /user');
+        
+        // Use replace instead of push to avoid history issues
+        window.location.href = "/user";
+        return;
       }
       
-      // Store user data in sessionStorage
-      console.log('Storing user data in sessionStorage:', userData);
-      sessionStorage.setItem('user', JSON.stringify(userData));
-      
-      // If login is successful, redirect to the user page
-      console.log('Login and user data storage successful, redirecting to /user');
-      router.push("/user");
+      throw new Error('Failed to fetch user data after login');
     } catch (error) {
       console.error('Login error:', error);
       setError(error.message || "An error occurred during login");
