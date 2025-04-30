@@ -1,7 +1,6 @@
 import { NextResponse } from "next/server";
+import { auth } from "@/auth";
 import { signIn } from "next-auth/react";
-import { getServerSession } from "next-auth";
-import { authOptions } from "@/auth.config";
 
 export async function POST(request) {
     try {
@@ -14,7 +13,7 @@ export async function POST(request) {
             );
         }
 
-        const session = await getServerSession(authOptions);
+        const session = await auth();
 
         if (session) {
             return NextResponse.json(
