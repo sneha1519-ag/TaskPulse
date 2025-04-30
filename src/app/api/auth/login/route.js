@@ -1,7 +1,7 @@
 import { NextResponse } from "next/server";
 import { signIn } from "next-auth/react";
-import { getServerSession } from "next-auth";
-import { authOptions } from "@/lib/auth.config";
+import { getServerSession } from "next-auth/next"
+import { authOptions } from "@auth.config";
 
 export async function POST(request) {
     try {
